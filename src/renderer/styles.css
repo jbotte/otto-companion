@@ -1,0 +1,55 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e1116; --bg2: #151a21; --bg3: #1b222b; --fg: #d7dee8; --muted: #7d8896;
+  --accent: #4c9aff; --err: #ff6b6b; --warn: #ffb454; --ok: #6bcf8f; --border: #232c37;
+}
+html, body { height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+#app { display: flex; height: 100vh; }
+
+#sidebar { width: 280px; min-width: 280px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 10px; gap: 12px; overflow-y: auto; }
+.brand { font-weight: 700; padding: 4px 2px 8px; }
+#sidebar h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.list { display: flex; flex-direction: column; gap: 2px; }
+.item { display: block; text-align: left; background: none; border: 1px solid transparent; color: var(--fg); padding: 5px 8px; border-radius: 6px; cursor: pointer; font: inherit; }
+.item:hover { background: var(--bg3); }
+.item.active { background: var(--bg3); border-color: var(--border); }
+.rowish { display: flex; align-items: center; gap: 4px; }
+.grow { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini { background: var(--bg3); color: var(--fg); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; padding: 1px 7px; font: inherit; }
+.mini:hover { border-color: var(--accent); }
+.box { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; align-items: center; gap: 6px; }
+.row label { color: var(--muted); }
+select { background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 5px; padding: 2px 4px; font: inherit; }
+code { background: var(--bg); padding: 1px 6px; border-radius: 4px; font: 12px ui-monospace, monospace; }
+.muted { color: var(--muted); }
+.pad { padding: 4px 8px; }
+.grow-section { flex: 1; min-height: 120px; display: flex; flex-direction: column; }
+
+#maincol { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#topbar { display: flex; gap: 6px; padding: 8px; background: var(--bg2); border-bottom: 1px solid var(--border); }
+#topbar button { background: var(--bg3); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
+#topbar button:hover { border-color: var(--accent); }
+#url { flex: 1; background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font: 13px ui-monospace, monospace; outline: none; }
+#url:focus { border-color: var(--accent); }
+
+#tabbar { display: flex; gap: 4px; padding: 6px 8px 0; background: var(--bg2); overflow-x: auto; }
+.chip { display: flex; align-items: center; gap: 6px; background: var(--bg3); border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; padding: 4px 8px; max-width: 260px; cursor: pointer; }
+.chip.active { background: var(--bg); }
+.chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip .x { color: var(--muted); padding: 0 2px; }
+.chip .x:hover { color: var(--err); }
+
+#browserArea { flex: 1; min-height: 80px; background: #fff; }
+
+#panel { height: 200px; border-top: 1px solid var(--border); background: var(--bg2); display: flex; flex-direction: column; }
+#panelTabs { display: flex; gap: 2px; padding: 4px 8px 0; }
+#panelTabs button { background: none; border: none; color: var(--muted); padding: 4px 10px; cursor: pointer; font: inherit; border-radius: 6px 6px 0 0; }
+#panelTabs button.active { color: var(--fg); background: var(--bg3); }
+
+.log { flex: 1; overflow-y: auto; padding: 6px 10px; font: 12px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.log.hidden { display: none; }
+.log .line { white-space: pre-wrap; word-break: break-all; }
+.log .err { color: var(--err); }
+.log .warn { color: var(--warn); }
+.log .info { color: var(--accent); }

@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <title>Otto Companion</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="brand">🤖 Otto Companion</div>
+
+      <section>
+        <h3>Profiles <button id="addProfile" class="mini" title="New profile">+</button></h3>
+        <div id="profiles" class="list"></div>
+      </section>
+
+      <section>
+        <h3>Shared folders <button id="addFolder" class="mini" title="Share a folder">+</button></h3>
+        <div id="folders" class="list"></div>
+      </section>
+
+      <section>
+        <h3>Agent</h3>
+        <div id="agentBox" class="box">
+          <div id="agentStatus" class="muted">starting…</div>
+          <div class="row">
+            <label>Bind</label>
+            <select id="bindSelect">
+              <option value="localhost">This machine only</option>
+              <option value="lan">LAN / tailnet</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>Token</label>
+            <code id="token" class="grow"></code>
+            <button id="rotateToken" class="mini" title="Rotate token">↻</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="grow-section">
+        <h3>Activity</h3>
+        <div id="agentLog" class="log"></div>
+      </section>
+    </aside>
+
+    <div id="maincol">
+      <header id="topbar">
+        <button id="back" title="Back">←</button>
+        <button id="forward" title="Forward">→</button>
+        <button id="reload" title="Reload">⟳</button>
+        <input id="url" type="text" spellcheck="false" placeholder="URL or search…" />
+        <button id="goBtn">Go</button>
+        <button id="newTab" title="New tab">＋</button>
+      </header>
+      <nav id="tabbar"></nav>
+      <div id="browserArea"></div>
+      <section id="panel">
+        <nav id="panelTabs">
+          <button data-view="logConsole" class="active">Console</button>
+          <button data-view="logNetwork">Network</button>
+        </nav>
+        <div id="logConsole" class="log"></div>
+        <div id="logNetwork" class="log hidden"></div>
+      </section>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
