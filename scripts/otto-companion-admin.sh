@@ -6,6 +6,15 @@
 # When launched via an authorized_keys forced command, the subcommand arrives
 # as SSH_ORIGINAL_COMMAND (what ssh passes is otherwise ignored).
 set -uo pipefail
+# PATH bootstrap for locked-down ssh forced-command sessions (non-login, non-interactive):
+# cover Homebrew + common node version managers (nvm, fnm, volta, asdf).
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+for base in "$HOME/.nvm/versions/node" "$HOME/.fnm/node-versions" "$HOME/.local/share/fnm/node-versions"; do
+  newest=$(ls -1 "$base" 2>/dev/null | sort -V | tail -1)
+  [ -n "$newest" ] && PATH="$base/$newest/bin:$PATH"
+done
+for d in "$HOME/.volta/bin" "$HOME/.asdf/shims" "$HOME/.local/bin"; do [ -d "$d" ] && PATH="$d:$PATH"; done
+export PATH
 DIR="${OTTO_COMPANION_HOME:-$HOME/otto-companion}"
 cmd="${1:-${SSH_ORIGINAL_COMMAND:-status}}"
 
@@ -40,5 +49,5 @@ case "$cmd" in
     ;;
   logs) tail -n 200 /tmp/otto-companion.log ;;
   smoke) cd "$DIR" && node test/smoke.js ;;
-  *) echo "otto-companion-admin: usage: deploy|update|restart|status|logs|smoke"; exit 2 ;;
+  *) echo "otto-companion-admin: usage: deploy|update|restart|status|logs|smoke"; echo "node: $(command -v node || echo MISSING)  npm: $(command -v npm || echo MISSING)"; exit 2 ;;
 esac
