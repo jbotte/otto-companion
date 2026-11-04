@@ -20,7 +20,7 @@ function forwardAgentEvent(type, payload) {
 }
 
 function startServers() {
-  const bind = store.get('bind', 'localhost');
+  const bind = store.get('bind', 'lan'); // tailnet-first default; UI can flip to localhost
   const host = bind === 'lan' ? '0.0.0.0' : '127.0.0.1';
   const token = ensureToken();
   const a = agent.start({ host, port: store.get('agentPort', 9223), token });
@@ -148,7 +148,7 @@ if (!gotLock) {
   app.on('second-instance', () => { if (win) win.focus(); });
 
   app.whenReady().then(() => {
-    store = new Store('settings', { bind: 'localhost', agentPort: 9223, sharePort: 9224 });
+    store = new Store('settings', { bind: 'lan', agentPort: 9223, sharePort: 9224 });
 
     win = new BrowserWindow({
       width: 1440, height: 900, minWidth: 1024, minHeight: 640,
