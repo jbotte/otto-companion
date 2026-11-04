@@ -67,7 +67,9 @@ class BrowserManager {
         if (this.netLog.length > NET_CAP) this.netLog.splice(0, this.netLog.length - NET_CAP);
         this.emit('net', entry);
       }
-      cb({});
+      // Only the blocking webRequest hooks receive a callback; non-blocking
+      // listeners (onCompleted/onErrorOccurred) must not be called with one.
+      if (typeof cb === 'function') cb({});
     };
     ses.webRequest.onBeforeRequest(filter, push('before'));
     ses.webRequest.onCompleted(filter, push('done'));
