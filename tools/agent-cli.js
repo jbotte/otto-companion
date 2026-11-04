@@ -57,7 +57,7 @@ qs.set('token', auth);
 const url = process.env.OTTO_AGENT_WS || `ws://${host}:${port}/?${qs.toString()}`;
 
 const ws = new WebSocket(url);
-const timer = setTimeout(() => { console.error('timeout'); process.exit(1); }, 60000);
+const timer = setTimeout(() => { console.error('timeout'); process.exit(1); }, 150000);
 
 ws.addEventListener('open', () => {
   ws.send(JSON.stringify({ id: 1, method, params }));
