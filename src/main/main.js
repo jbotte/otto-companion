@@ -34,12 +34,19 @@ function ensureToken() {
     token = crypto.randomBytes(16).toString('hex');
     store.set('agentToken', token);
   }
-  // CLI reads this file to find the token without UI copy/paste.
+  // CLI reads these files to find the token without UI copy/paste. Mirror to
+  // the plain 'otto-companion' dir too: the locked-down admin script and
+  // agent-cli.js look there (Electron's userData uses the productName).
   const fs = require('fs');
+  const payloads = JSON.stringify({ token, port: store.get('agentPort', 9223), sharePort: store.get('sharePort', 9224) }, null, 2);
   try {
-    const p = path.join(app.getPath('userData'), 'agent.json');
     fs.mkdirSync(app.getPath('userData'), { recursive: true });
-    fs.writeFileSync(p, JSON.stringify({ token, port: store.get('agentPort', 9223), sharePort: store.get('sharePort', 9224) }, null, 2));
+    fs.writeFileSync(path.join(app.getPath('userData'), 'agent.json'), payloads);
+  } catch {}
+  try {
+    const mirror = path.join(app.getPath('appData'), 'otto-companion');
+    fs.mkdirSync(mirror, { recursive: true });
+    fs.writeFileSync(path.join(mirror, 'agent.json'), payloads);
   } catch {}
   return token;
 }

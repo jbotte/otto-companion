@@ -61,7 +61,10 @@ case "$cmd" in
   restart) ensure_node && start_app && echo RESTARTED ;;
   status)
     pgrep -fl "otto-companion/node_modules/electron" || echo "not running"
-    cat "$HOME/Library/Application Support/otto-companion/agent.json" 2>/dev/null || true
+    for d in "$HOME/Library/Application Support/Otto Companion" "$HOME/Library/Application Support/otto-companion" "$HOME/.config/Otto Companion" "$HOME/.config/otto-companion"; do
+      [ -f "$d/agent.json" ] && cat "$d/agent.json" && break
+    done
+    true
     ;;
   logs) tail -n 200 /tmp/otto-companion.log ;;
   smoke) ensure_node && cd "$DIR" && node test/smoke.js ;;

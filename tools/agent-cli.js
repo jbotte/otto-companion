@@ -26,10 +26,12 @@ function loadLocal() {
     process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming')
   ].filter(Boolean);
   for (const b of bases) {
-    try {
-      const p = path.join(b, 'otto-companion', 'agent.json');
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-    } catch {}
+    for (const d of ['Otto Companion', 'otto-companion']) {
+      try {
+        const p = path.join(b, d, 'agent.json');
+        if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
+      } catch {}
+    }
   }
   return {};
 }
