@@ -154,6 +154,12 @@ function registerMethods() {
     'browser.network': ({ profile, tail }) => browser.netLogFor({ partition: profile, tail }),
     'browser.evaluate': ({ tab, code }) => browser.evaluate(tab, code),
 
+    'window.ensure': () => {
+      if (!win || win.isDestroyed()) createWindow();
+      else { win.show(); win.focus(); }
+      return { ok: true, tabs: browser.listTabs() };
+    },
+
     'fs.folders': () => files.folders(),
     'fs.list': ({ folder, path: p }) => files.list(folder, p),
     'fs.read': ({ folder, path: p }) => files.read(folder, p),
@@ -225,7 +231,7 @@ function createWindow() {
     }
   });
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-  if (browser) browser.win = win; // re-attach tab views to the new window
+  if (browser) browser.ensureWindow(win); // re-attach (or revive) tab views
   win.on('closed', () => { win = null; });
   return win;
 }

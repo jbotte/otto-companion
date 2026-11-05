@@ -128,6 +128,55 @@ class BrowserManager {
     return this.summarize(tab);
   }
 
+  // ---------- tab revival after window close/recreate ----------
+  // (listeners duplicated from openTab for the recreated-view path; unify later)
+  wire(tab) {
+    const wc = tab.view.webContents;
+    const id = tab.id;
+    wc.on('console-message', (event, level, message, line, sourceId) => {
+      const e = event && typeof event === 'object' ? event : {};
+      let lvl = level ?? e.level ?? 'log';
+      if (typeof lvl === 'number') lvl = LEVELS[lvl] || 'log';
+      const entry = {
+        ts: Date.now(), tabId: Number(id), level: String(lvl),
+        message: String(message ?? e.message ?? ''),
+        line: line ?? e.lineNumber ?? null,
+        source: sourceId ?? null,
+        url: wc.getURL()
+      };
+      tab.console.push(entry);
+      if (tab.console.length > CONSOLE_CAP) tab.console.shift();
+      this.emit('console', entry);
+    });
+    wc.on('did-navigate', (_e, u) => { tab.url = u; this.touch(tab); });
+    wc.on('did-navigate-in-page', (_e, u) => { tab.url = u; this.touch(tab); });
+    wc.on('page-title-updated', (_e, t) => { tab.title = t; this.touch(tab); });
+    wc.on('did-fail-load', (_e, code, desc, u) => {
+      if (code !== -3) this.emit('agent', { kind: 'page', text: `load failed (${code} ${desc}) ${u}` });
+    });
+    wc.on('render-process-gone', (_e, d) => {
+      this.emit('agent', { kind: 'page', text: `renderer gone (${d.reason}) tab ${id}` });
+    });
+  }
+
+  ensureWindow(win) {
+    this.win = win;
+    for (const t of this.tabs.values()) {
+      if (t.view.webContents.isDestroyed()) {
+        t.view = new WebContentsView({
+          webPreferences: { partition: 'persist:' + t.profile, contextIsolation: true, sandbox: true }
+        });
+        this.wire(t);
+        win.contentView.addChildView(t.view);
+        t.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+        if (t.url && t.url !== 'about:blank') t.view.webContents.loadURL(t.url).catch(() => {});
+      } else {
+        try { win.contentView.addChildView(t.view); } catch {}
+      }
+    }
+    if (this.tabs.size) { try { this.activate(this.tabs.keys().next().value); } catch {} }
+  }
+
   activate(id) {
     const tab = this.tabs.get(String(id));
     if (!tab) throw new Error('no such tab: ' + id);

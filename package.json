@@ -10,6 +10,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "sharp": "^0.35.5",
     "ws": "^8.18.0"
   },
   "devDependencies": {

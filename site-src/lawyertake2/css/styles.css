@@ -76,7 +76,10 @@ body {
 }
 
 /* -------------------------------------------------------------- typography */
-.display {
+.display,
+.display-xxl,
+.display-xl,
+.display-lg {
   font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: -0.02em;
