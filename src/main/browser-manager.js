@@ -230,7 +230,7 @@ class BrowserManager {
   // ---------- navigation & content ----------
   async navigate(tabId, url) {
     const tab = this.tab(tabId);
-    if (!/^https?:\/\//i.test(url)) url = 'https://duckduckgo.com/?q=' + encodeURIComponent(url);
+    if (!/^(https?|file|data):\/\//i.test(url) && url !== 'about:blank') url = 'https://duckduckgo.com/?q=' + encodeURIComponent(url);
     await tab.view.webContents.loadURL(url);
     return this.summarize(tab);
   }
