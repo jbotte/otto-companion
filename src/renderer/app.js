@@ -25,6 +25,29 @@ function renderProfiles() {
   }
 }
 
+function renderGrants() {
+  const el = $('grants');
+  const list = (state && state.grants) || [];
+  el.innerHTML = '';
+  if (!list.length) {
+    el.innerHTML = '<div class="muted pad">None. Folder-wide approvals appear here.</div>';
+    return;
+  }
+  for (const g of list) {
+    const row = document.createElement('div');
+    row.className = 'item rowish';
+    const mins = Math.max(0, Math.round((g.expires - Date.now()) / 60000));
+    row.innerHTML = `<span class="grow">${g.op === 'read' ? '📖' : '✏️'} ${g.folder}</span><span class="muted"> ${mins}m</span>`;
+    const x = document.createElement('button');
+    x.className = 'mini';
+    x.textContent = '✕';
+    x.title = 'Revoke';
+    x.onclick = async (e) => { e.stopPropagation(); await companion.grantsRevoke(g.key); };
+    row.appendChild(x);
+    el.appendChild(row);
+  }
+}
+
 function renderFolders() {
   const el = $('folders');
   el.innerHTML = '';
@@ -105,6 +128,9 @@ companion.onEvent(({ type, data }) => {
     else if (t === 'approval-result') pushLog($('agentLog'), allowed ? 'info' : 'err', `${allowed ? '✓ allowed' : '✗ denied'}: ${method}`);
     else if (t === 'client') pushLog($('agentLog'), 'info', text || note || '');
     else if (t === 'page') pushLog($('agentLog'), 'warn', text || '');
+  } else if (type === 'grants') {
+    state = { ...(state || {}), grants: data.grants || [] };
+    renderGrants();
   } else if (type === 'agentstatus') {
     const a = data.agent || {};
     $('agentStatus').textContent = `ws://${data.bind === 'lan' ? '<you>': '127.0.0.1'}:${a.port || ''} · ${(data.clients ?? 0)} client(s)` + (data.error ? ' · ' + data.error : '');
@@ -113,6 +139,7 @@ companion.onEvent(({ type, data }) => {
 
 // ---------------------------------------------------------------- controls
 $('goBtn').onclick = () => { const v = $('url').value.trim(); if (v) companion.navigate(v); };
+$('clearGrants').onclick = () => companion.grantsClear();
 $('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) companion.navigate(v); } });
 $('back').onclick = () => companion.nav('back');
 $('forward').onclick = () => companion.nav('forward');

@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('companion', {
   folderAdd: () => ipcRenderer.invoke('ui:folder-add'),
   folderRemove: (id) => ipcRenderer.invoke('ui:folder-remove', { id }),
   folderReadonly: (id, readOnly) => ipcRenderer.invoke('ui:folder-readonly', { id, readOnly }),
+  grantsRevoke: (key) => ipcRenderer.invoke('ui:grants-revoke', { key }),
+  grantsClear: () => ipcRenderer.invoke('ui:grants-clear'),
 
   setBind: (bind) => ipcRenderer.invoke('ui:set-bind', { bind }),
   newToken: () => ipcRenderer.invoke('ui:new-token'),

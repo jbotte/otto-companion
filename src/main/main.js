@@ -52,16 +52,59 @@ function ensureToken() {
 }
 
 let approvalChain = Promise.resolve();
+
+// Session grants: allow an entire folder (reads or writes) for a bounded time.
+// Cleared on app restart; deletions and browser.evaluate are NEVER bulk-granted.
+const GRANT_MS = 2 * 60 * 60 * 1000;
+const grants = new Map(); // `${folderId}|read|write` -> expiry ms
+function folderRefToId(ref) {
+  const list = files ? files.folders() : [];
+  const f = list.find((x) => x.id === ref) || list.find((x) => x.name === ref);
+  return f ? f.id : null;
+}
+function folderName(id) {
+  const f = (files ? files.folders() : []).find((x) => x.id === id);
+  return f ? f.name : id;
+}
+function pruneGrants() {
+  const now = Date.now();
+  let changed = false;
+  for (const [k, exp] of grants) if (exp <= now) { grants.delete(k); changed = true; }
+  if (changed) pushGrants();
+}
+function pushGrants() {
+  const list = [...grants.entries()]
+    .filter(([, exp]) => exp > Date.now())
+    .map(([key, exp]) => {
+      const [fid, op] = key.split('|');
+      return { key, op, folder: folderName(fid), expires: exp };
+    });
+  sendToUI('grants', { grants: list });
+}
+
 function requestApproval(method, params) {
   const run = async () => {
+    let op = null;
+    if (method === 'fs.read') op = 'read';
+    else if (method === 'fs.write' || method === 'fs.mkdir') op = 'write';
+    const fid = op && params && params.folder ? folderRefToId(params.folder) : null;
+    const key = fid ? `${fid}|${op}` : null;
+    pruneGrants();
+    if (key && grants.get(key) > Date.now()) {
+      if (agent) agent.emit('client', { text: `✓ session grant: ${method} in ${folderName(fid)} (${op})` });
+      return true;
+    }
     const detail = JSON.stringify(params, (k, v) => (k === 'content' && typeof v === 'string' && v.length > 2000 ? v.slice(0, 2000) + '…' : v), 2).slice(0, 2000);
     const parent = win && !win.isDestroyed() ? win : undefined;
+    const buttons = key
+      ? ['Allow once', `Allow all ${op}s in ${folderName(fid)} · 2 h`, 'Deny']
+      : ['Allow once', 'Deny'];
     try {
       const { response } = await dialog.showMessageBox(parent, {
         type: 'warning',
-        buttons: ['Allow once', 'Deny'],
-        defaultId: 1,
-        cancelId: 1,
+        buttons,
+        defaultId: buttons.length - 1,
+        cancelId: buttons.length - 1,
         title: 'Otto requests an action',
         message: `Otto wants to run: ${method}`,
         detail,
@@ -69,7 +112,13 @@ function requestApproval(method, params) {
         // Auto-deny instead of stacking modal dialogs forever (Electron >= 29).
         signal: AbortSignal.timeout(120000)
       });
-      return response === 0;
+      if (response === 0) return true;
+      if (key && response === 1) {
+        grants.set(key, Date.now() + GRANT_MS);
+        pushGrants();
+        return true;
+      }
+      return false; // Deny or third button
     } catch {
       return false; // timed out or window gone -> deny
     }
@@ -143,6 +192,8 @@ function registerUI() {
     return files.addFolder(r.filePaths[0]);
   });
   ipcMain.handle('ui:folder-remove', (_e, { id }) => files.removeFolder(id));
+  ipcMain.handle('ui:grants-revoke', (_e, { key }) => { grants.delete(key); pushGrants(); return { ok: true }; });
+  ipcMain.handle('ui:grants-clear', () => { grants.clear(); pushGrants(); return { ok: true }; });
   ipcMain.handle('ui:folder-readonly', (_e, { id, readOnly }) => {
     const list = files.folders();
     const f = list.find((x) => x.id === id);
