@@ -51,19 +51,33 @@ function ensureToken() {
   return token;
 }
 
-async function requestApproval(method, params) {
-  const detail = JSON.stringify(params, (k, v) => (k === 'content' && typeof v === 'string' && v.length > 2000 ? v.slice(0, 2000) + '…' : v), 2).slice(0, 2000);
-  const { response } = await dialog.showMessageBox(win, {
-    type: 'warning',
-    buttons: ['Allow once', 'Deny'],
-    defaultId: 1,
-    cancelId: 1,
-    title: 'Otto requests an action',
-    message: `Otto wants to run: ${method}`,
-    detail,
-    noLink: true
-  });
-  return response === 0;
+let approvalChain = Promise.resolve();
+function requestApproval(method, params) {
+  const run = async () => {
+    const detail = JSON.stringify(params, (k, v) => (k === 'content' && typeof v === 'string' && v.length > 2000 ? v.slice(0, 2000) + '…' : v), 2).slice(0, 2000);
+    const parent = win && !win.isDestroyed() ? win : undefined;
+    try {
+      const { response } = await dialog.showMessageBox(parent, {
+        type: 'warning',
+        buttons: ['Allow once', 'Deny'],
+        defaultId: 1,
+        cancelId: 1,
+        title: 'Otto requests an action',
+        message: `Otto wants to run: ${method}`,
+        detail,
+        noLink: true,
+        // Auto-deny instead of stacking modal dialogs forever (Electron >= 29).
+        signal: AbortSignal.timeout(120000)
+      });
+      return response === 0;
+    } catch {
+      return false; // timed out or window gone -> deny
+    }
+  };
+  // Serialize: one dialog at a time, no pile-ups.
+  const p = approvalChain.then(run, run);
+  approvalChain = p.then(() => {}, () => {});
+  return p;
 }
 
 // ------------------------------------------------------------------ agent methods
@@ -148,28 +162,33 @@ function registerUI() {
 }
 
 // ------------------------------------------------------------------ boot
+function createWindow() {
+  win = new BrowserWindow({
+    width: 1440, height: 900, minWidth: 1024, minHeight: 640,
+    backgroundColor: '#0e1116',
+    title: 'Otto Companion',
+    webPreferences: {
+      preload: path.join(__dirname, '..', 'preload', 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  if (browser) browser.win = win; // re-attach tab views to the new window
+  win.on('closed', () => { win = null; });
+  return win;
+}
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => { if (win) win.focus(); });
+  app.on('second-instance', () => { if (win && !win.isDestroyed()) win.focus(); else createWindow(); });
 
   app.whenReady().then(() => {
     store = new Store('settings', { bind: 'lan', agentPort: 9223, sharePort: 9224 });
 
-    win = new BrowserWindow({
-      width: 1440, height: 900, minWidth: 1024, minHeight: 640,
-      backgroundColor: '#0e1116',
-      title: 'Otto Companion',
-      webPreferences: {
-        preload: path.join(__dirname, '..', 'preload', 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false
-      }
-    });
-    win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-
-    browser = new BrowserManager(win, store, (type, data) => sendToUI(type, data));
+    browser = new BrowserManager(null, store, (type, data) => sendToUI(type, data));
     files = new FileShare(store, (type, data) => sendToUI(type, data));
     agent = new AgentServer();
     agent.emit = forwardAgentEvent;
@@ -177,14 +196,21 @@ if (!gotLock) {
     registerUI();
     startServers();
 
+    createWindow();
     browser.openTab({ profile: 'default', url: 'https://example.com' });
 
-    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) app.quit(); });
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      else if (win && !win.isDestroyed()) win.show();
+    });
   });
 
   app.on('window-all-closed', () => {
-    agent.stop();
-    files.stop();
-    app.quit();
+    // macOS: stay alive (dock -> activate recreates the window). Other OSes: quit.
+    if (process.platform !== 'darwin') {
+      agent.stop();
+      files.stop();
+      app.quit();
+    }
   });
 }
